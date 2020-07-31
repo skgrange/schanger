@@ -2,3 +2,9 @@ language: r
 sudo: required
 warnings_are_errors: true
 
+
+# Install JAGS
+addons:
+  apt:
+    packages: jags
+
