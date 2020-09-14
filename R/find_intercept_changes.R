@@ -21,7 +21,19 @@ find_intercept_changes <- function(df, n_pieces = 2, chains = 3,
                                    n_cores = 1, verbose = FALSE) {
   
   # Message to user
-  if (verbose) message(threadr::date_message(), "Modelling...")
+  if (verbose) {
+    
+    # Get site if exists
+    if("site" %in% names(df)) {
+      message <- stringr::str_c("`", df$site[1], "`...")
+    } else {
+      message <- "Modelling..."
+    }
+    
+    # Message
+    message(threadr::date_message(), message)
+    
+  }
   
   # Check dates
   if (!"date" %in% names(df)) {
@@ -58,7 +70,7 @@ find_intercept_changes <- function(df, n_pieces = 2, chains = 3,
   if (anyNA(df$value)) {
     df <- mutate(df, value = threadr::na_interpolate(value))
     values_interpolated <- TRUE
-    warning("Missing values have been interpolated...", call. = FALSE)
+    # warning("Missing values have been interpolated...", call. = FALSE)
   } else {
     values_interpolated <- FALSE
   }
@@ -127,7 +139,7 @@ find_intercept_changes <- function(df, n_pieces = 2, chains = 3,
 #' @return Tibble. 
 #' 
 #' @export
-predict_intercept_changes <- function(model, n = 10, summarise = FALSE, 
+predict_intercept_changes <- function(model, n = 20, summarise = FALSE, 
                                       tz = "UTC") {
   
   # Get max and min from data, in Unix time
@@ -165,5 +177,63 @@ predict_intercept_changes <- function(model, n = 10, summarise = FALSE,
              value_predict)
   
   return(df)
+  
+}
+
+
+#' Function to extract change point dates from 
+#' \code{\link{predict_intercept_changes}}'s output.
+#' 
+#' @param df Data frame from \code{\link{predict_intercept_changes}}.
+#' 
+#' @author Stuart K. Grange
+#' 
+#' @return Tibble.
+#' 
+#' @export
+extract_change_point_dates <- function(df) {
+  
+  df %>% 
+    select(draw,
+           dplyr::matches("change_point")) %>% 
+    tidyr::pivot_longer(-draw, names_to = "change_point", values_to = "date") %>% 
+    mutate(change_point = stringr::str_remove(change_point, "change_point_"),
+           change_point = as.integer(change_point))
+  
+  # # Get number of draws
+  # n <- length(unique(df_long$draw))
+  # 
+  # # Summarise, get the mode date
+  # df_summary <- df_long %>% 
+  #   mutate(date = lubridate::floor_date(date, "day")) %>% 
+  #   group_by(change_point) %>% 
+  #   summarise(n = !!n,
+  #             date = threadr::mode_average(date),
+  #             .groups = "drop")
+  
+}
+
+
+#' Function to extract intercept change values from 
+#' \code{\link{predict_intercept_changes}}'s output. 
+#' 
+#' @param df Data frame from \code{\link{predict_intercept_changes}}.
+#' 
+#' @author Stuart K. Grange
+#' 
+#' @return Tibble. 
+#' 
+#' @export
+extract_intercept_change_values <- function(df) {
+  
+  df %>% 
+    select(draw,
+           dplyr::matches("intercept")) %>% 
+    tidyr::pivot_longer(-draw, names_to = "intercept") %>% 
+    mutate(intercept = stringr::str_remove(intercept, "intercept_"),
+           intercept = as.integer(intercept)) %>% 
+    group_by(intercept) %>% 
+    summarise(value = mean(value, na.rm = TRUE),
+              .groups = "drop")
   
 }
