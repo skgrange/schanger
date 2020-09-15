@@ -198,18 +198,10 @@ extract_change_point_dates <- function(df) {
            dplyr::matches("change_point")) %>% 
     tidyr::pivot_longer(-draw, names_to = "change_point", values_to = "date") %>% 
     mutate(change_point = stringr::str_remove(change_point, "change_point_"),
-           change_point = as.integer(change_point))
-  
-  # # Get number of draws
-  # n <- length(unique(df_long$draw))
-  # 
-  # # Summarise, get the mode date
-  # df_summary <- df_long %>% 
-  #   mutate(date = lubridate::floor_date(date, "day")) %>% 
-  #   group_by(change_point) %>% 
-  #   summarise(n = !!n,
-  #             date = threadr::mode_average(date),
-  #             .groups = "drop")
+           change_point = as.integer(change_point)) %>% 
+    distinct(draw,
+             change_point,
+             date)
   
 }
 
@@ -232,8 +224,8 @@ extract_intercept_change_values <- function(df) {
     tidyr::pivot_longer(-draw, names_to = "intercept") %>% 
     mutate(intercept = stringr::str_remove(intercept, "intercept_"),
            intercept = as.integer(intercept)) %>% 
-    group_by(intercept) %>% 
-    summarise(value = mean(value, na.rm = TRUE),
-              .groups = "drop")
+    distinct(draw,
+             intercept,
+             value)
   
 }
