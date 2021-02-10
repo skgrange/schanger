@@ -108,9 +108,8 @@ find_intercept_changes <- function(df, n_pieces = 2, chains = 3,
     ungroup() %>% 
     mutate(values_interpolated = !!values_interpolated,
            across(dplyr::starts_with("cp_"), threadr::parse_unix_time)) %>% 
-    select(id,
-           everything())
-  
+    relocate(id)
+
   # Append data to list
   list_model <- c(list_model, mcmc_tidy = list(df_mc))
   
