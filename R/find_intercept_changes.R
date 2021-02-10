@@ -51,6 +51,9 @@ find_intercept_changes <- function(df, n_pieces = 2, chains = 3,
   # Check n
   stopifnot(n_pieces >= 2L)
   
+  # Store time zone for later
+  time_zone <- threadr::time_zone(df$date)
+  
   # Build formula
   if (n_pieces == 2) {
     formula_model <- list(value ~ 1, ~ 1)
@@ -106,10 +109,12 @@ find_intercept_changes <- function(df, n_pieces = 2, chains = 3,
     group_by(chain) %>% 
     mutate(id = 1:n()) %>% 
     ungroup() %>% 
-    mutate(values_interpolated = !!values_interpolated,
-           across(dplyr::starts_with("cp_"), threadr::parse_unix_time)) %>% 
-    relocate(id)
-
+    relocate(id) %>% 
+    mutate(
+      values_interpolated = !!values_interpolated,
+      across(dplyr::starts_with("cp_"), ~threadr::parse_unix_time(., tz = time_zone))
+    )
+  
   # Append data to list
   list_model <- c(list_model, mcmc_tidy = list(df_mc))
   
