@@ -55,19 +55,29 @@ find_intercept_changes <- function(df, n_pieces = 2, chains = 3,
   time_zone <- threadr::time_zone(df$date)
   
   # Build formula
-  if (n_pieces == 2) {
-    formula_model <- list(value ~ 1, ~ 1)
-  } else if (n_pieces == 3) {
-    formula_model <- list(value ~ 1, ~ 1, ~ 1)
-  } else if (n_pieces == 4) {
-    formula_model <- list(value ~ 1, ~ 1, ~ 1, ~ 1)
-  } else if (n_pieces == 5) {
-    formula_model <- list(value ~ 1, ~ 1, ~ 1, ~ 1, ~ 1)
-  } else if (n_pieces == 6) {
-    formula_model <- list(value ~ 1, ~ 1, ~ 1, ~ 1, ~ 1, ~ 1)
-  } else {
-    stop("`n_pieces` is not supported.", call. = FALSE)
-  }
+  # if (n_pieces == 2) {
+  #   formula_model <- list(value ~ 1, ~ 1)
+  # } else if (n_pieces == 3) {
+  #   formula_model <- list(value ~ 1, ~ 1, ~ 1)
+  # } else if (n_pieces == 4) {
+  #   formula_model <- list(value ~ 1, ~ 1, ~ 1, ~ 1)
+  # } else if (n_pieces == 5) {
+  #   formula_model <- list(value ~ 1, ~ 1, ~ 1, ~ 1, ~ 1)
+  # } else if (n_pieces == 6) {
+  #   formula_model <- list(value ~ 1, ~ 1, ~ 1, ~ 1, ~ 1, ~ 1)
+  # } else {
+  #   stop("`n_pieces` is not supported.", call. = FALSE)
+  # }
+  
+  # Replicate intercept term n times
+  formula_suffix <- rep(", ~ 1", times = (n_pieces - 1)) %>% 
+    stringr::str_c(collapse = "")
+  
+  # Build a string
+  formula_model <- stringr::str_c("list(value ~ 1", formula_suffix, ")")
+  
+  # Parse string to make valid code
+  formula_model <- eval(parse(text = formula_model))
   
   # Check input for missing-ness and interpolate if needed
   if (anyNA(df$value)) {
@@ -110,8 +120,12 @@ find_intercept_changes <- function(df, n_pieces = 2, chains = 3,
     mutate(id = 1:n()) %>% 
     ungroup() %>% 
     relocate(id) %>% 
+    mutate(values_interpolated = !!values_interpolated)
+  
+  # Parse dates too, the across call seems to need to be used by itself and not
+  # combined with that of above
+  df_mc <- df_mc %>% 
     mutate(
-      values_interpolated = !!values_interpolated,
       across(dplyr::starts_with("cp_"), ~threadr::parse_unix_time(., tz = time_zone))
     )
   
